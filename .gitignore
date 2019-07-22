@@ -3,6 +3,7 @@
 *.csv
 *.xlsx
 *.xls
+data/raw/*.txt
 
 # History files
 .Rhistory

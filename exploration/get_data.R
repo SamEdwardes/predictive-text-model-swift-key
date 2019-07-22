@@ -6,4 +6,8 @@ if(!file.exists("data/raw/Coursera-SwiftKey.zip")){
     download.file(url = url, destfile = "data/raw/Coursera-SwiftKey.zip" )
 }
 
-# Load teh data ----
+# Load the data ----
+library(data.table)
+df_twitter <- fread("data/raw/en_US.twitter.txt", nrows = 100, sep = NULL); df_twitter
+df_news <- fread("data/raw/en_US.news.txt", nrows = 100, sep = NULL); df_news
+df_blog <- fread("data/raw/en_US.blogs.txt", nrows = 100, sep = NULL); df_blog
