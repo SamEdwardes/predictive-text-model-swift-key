@@ -19,7 +19,6 @@ twitter_corp <- corpus(twitter_big)
 # Q2 - how many lines does the twitter text have? ----
 
 # segment the corpus to lines
-
 news_corp <- corpus_segment(news_corp, pattern = "\n")
 blogs_corp <- corpus_segment(blogs_corp, pattern = "\n")
 twitter_corp <- corpus_segment(twitter_corp, pattern = "\n")
