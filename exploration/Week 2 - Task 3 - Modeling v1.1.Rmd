@@ -1,0 +1,227 @@
+---
+output: html_notebook
+---
+
+## Load the data
+
+```{r setup, warning=FALSE, message=FALSE}
+# kintr settings
+knitr::opts_knit$set(root.dir = "~/Documents/GitHub/predictive-text-model-swift-key")
+```
+
+
+```{r warning=FALSE, message=FALSE}
+# libraries
+library(quanteda)
+library(readtext)
+library(tidyverse)
+library(caret)
+```
+
+
+```{r}
+# read all data
+news_big <- readtext("data/raw/en_US.news.txt")
+blogs_big <- readtext("data/raw/en_US.blogs.txt")
+twitter_big <- readtext("data/raw/en_US.twitter.txt")
+
+# create corpus
+news_corp <- corpus(news_big)
+blogs_corp <- corpus(blogs_big)
+twitter_corp <- corpus(twitter_big)
+
+# segment the corpus to lines
+news_corp <- corpus_segment(news_corp, pattern = "\n")
+blogs_corp <- corpus_segment(blogs_corp, pattern = "\n")
+twitter_corp <- corpus_segment(twitter_corp, pattern = "\n")
+
+# add all corpus together
+all_corp <- news_corp + blogs_corp + twitter_corp
+
+rm(news_corp, blogs_corp, twitter_corp,
+   news_big, blogs_big, twitter_big)
+```
+
+
+## Clean the corpus
+```{r}
+# break the data into training, testing, and
+set.seed(2019-07-24)
+pop_size <- length(all_corp$documents$texts)
+train_corp <- corpus_sample(all_corp, size = pop_size * 0.01)
+
+# replace errors in corpus to avoid problems when tokenizing
+texts(train_corp) <- gsub(pattern = "â€™", replacement = "'", x = texts(train_corp))
+texts(train_corp) <- gsub(pattern = " â ", replacement = "and", x = texts(train_corp))
+texts(train_corp) <- gsub(pattern = "â€œ", replacement = "", x = texts(train_corp))
+
+# remove anything that is not alpha or number
+texts(train_corp) <- stringr::str_replace_all(texts(train_corp),"[^a-zA-Z\\s]", "")
+```
+
+## Process tokens
+
+Create a function to apply to tokens to consistently clean them
+
+```{r}
+
+process_tokens <- function(toks){
+    
+    # create tokens
+    toks <- tokens(toks, 
+                   remove_numbers = TRUE, remove_punct = TRUE, remove_symbols = TRUE,
+                   remove_separators = TRUE, remove_twitter = TRUE, remove_hyphens = TRUE,
+                   remove_url = TRUE)
+    
+    # clean tokens
+    toks <- tokens_tolower(toks)
+    
+    # get rid of stop words
+    # toks <- tokens_select(toks, stopwords("english"), selection = "remove")
+    
+    
+    # get rid of bad tokens
+    toks <- tokens_replace(toks, pattern = "â", replacement = "and")
+    toks <- tokens_select(toks, pattern = "s", selection = "remove")
+    
+    # replace bad characters
+    patterns <- c("â")
+    toks <- as.tokens(lapply(toks, gsub, pattern = patterns, replacement = ""))
+    
+    # word stem
+    toks <- tokens_wordstem(toks)
+    
+    return(toks)
+}
+```
+
+Apply the tokens processing to our training data.
+
+```{r}
+# create the tokens
+train.tokens <- tokens(train_corp)
+train.tokens <- process_tokens(train.tokens)
+```
+
+
+## Build n-grams
+
+
+Build ngrams ranging in size from 2 to 4.
+
+```{r}
+train.ngram1 <-tokens_ngrams(train.tokens, n = 1)
+train.ngram2 <-tokens_ngrams(train.tokens, n = 2)
+train.ngram3 <-tokens_ngrams(train.tokens, n = 3)
+train.ngram4 <-tokens_ngrams(train.tokens, n = 4)
+```
+
+
+Turn into a data feature matrix (dfm), calculate frequencies, then turn into a data frame
+
+```{r}
+# create a document feature matrix (dfm)
+train.dfm1 <- textstat_frequency(dfm(train.ngram1))
+train.dfm1$frequency.percent <- train.dfm1$frequency / sum(train.dfm1$frequency)
+train.dfm1$ngrams <- 1
+
+train.dfm2 <- textstat_frequency(dfm(train.ngram2))
+train.dfm2$frequency.percent <- train.dfm2$frequency / sum(train.dfm2$frequency)
+train.dfm2$ngrams <- 2
+
+train.dfm3 <- textstat_frequency(dfm(train.ngram3))
+train.dfm3$frequency.percent <- train.dfm3$frequency / sum(train.dfm3$frequency)
+train.dfm3$ngrams <- 3
+
+train.dfm4 <- textstat_frequency(dfm(train.ngram4))
+train.dfm4$frequency.percent <- train.dfm4$frequency / sum(train.dfm4$frequency)
+train.dfm4$ngrams <- 4
+
+# combine all the dfms together
+train.dfm <- rbind(train.dfm1, train.dfm2, train.dfm3, train.dfm4)
+
+# Check results
+head(train.dfm)
+table(train.dfm$ngrams)
+```
+
+## The model
+
+https://rstudio-pubs-static.s3.amazonaws.com/496495_29c70e2d6a7644aea687cbc78af975b8.html
+
+```{r}
+predict_next_word <- function(input_text){
+    
+    # process the input text
+    input_toks <- tokens(input_text)
+    input_toks <- process_tokens(input_toks)
+    
+    
+    # create three different ngrams
+    search_ngrams3 <- tokens_ngrams(input_toks, 3)
+    search_ngrams2 <- tokens_ngrams(input_toks, 2)
+    search_ngrams1 <- tokens_ngrams(input_toks, 1)
+    
+    # get the last n_gram and add regular express syntax
+    search_term3 <- paste0("^", tail(search_ngrams3[[1]], 1), "_")
+    search_term2 <- paste0("^", tail(search_ngrams2[[1]], 1),  "_")
+    search_term1 <- paste0("^", tail(search_ngrams1[[1]], 1), "_")
+    
+    
+    # n_grams must be at least length of 2 in so search can return a result
+    search.dfm <- train.dfm %>% filter (ngrams >= 2)
+    
+    # create search terms
+    search_terms <- c(search_term1, search_term2, search_term3)
+    # if(length(search_ngrams3[[1]] == 0)) rm(search)
+    
+    # search the dataframe for potential matches
+    potential_matches <- data.frame()
+    ngrams_searched = 0
+    searches <- for(search_term in search_terms){
+        ngrams_searched = ngrams_searched + 1
+        # break out of the loop if ngram2 or ngram 3 does not exist
+        if(nchar(search_term) <= 2) next
+        temp <- search.dfm[grepl(pattern = search_term, x = search.dfm$feature), ]
+        temp$ngrams.found <- ngrams_searched
+        potential_matches <- union_all(temp, potential_matches)
+        
+    }
+    
+    potential_matches <- potential_matches %>%
+        # create a prediction score, assigning more weight to matches with deeper ngrams
+        mutate(score = ngrams.found) %>%
+        arrange(desc(score), desc(frequency.percent)) %>% 
+        head(1000)
+    
+    # get the best predicted next word
+    potential_matches$split_location <- stringi::stri_locate_last(str = potential_matches$feature, regex = "_")[,2]
+    potential_matches <- potential_matches %>%
+        mutate(prediction = substr(feature, split_location + 1, nchar(feature))) %>%
+        select(feature, prediction, ngrams.found, frequency.percent, ngrams, score, rank, frequency)
+    
+
+    
+    # return results
+    return(list("input_text" = input_text,
+                "input_toks" = input_toks,
+                "search_terms" = search_terms,
+                "search_ngrams" = c(search_ngrams1[[1]], search_ngrams2[[1]], search_ngrams3[[1]]),
+                "search_term" = NULL,
+                "potential_matches" = potential_matches
+                ))
+    
+    
+}
+
+z <- predict_next_word("Holy cow")
+z
+```
+
+
+```{r}
+predict_word <- function(user_input, min_words){
+    prediction <- predict_next_word()
+}
+```
+
