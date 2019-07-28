@@ -1,0 +1,177 @@
+---
+output: html_notebook
+---
+
+## Background
+
+Goal of this doc is to understand:
+
+- Exploratory analysis - perform a thorough exploratory analysis of the data, understanding the distribution of words and relationship between the words in the corpora.
+- Understand frequencies of words and word pairs - build figures and tables to understand variation in the frequencies of words and word pairs in the data.
+
+Questions to consider:
+
+1. Some words are more frequent than others - what are the distributions of word frequencies?
+2. What are the frequencies of 2-grams and 3-grams in the dataset?
+3. How many unique words do you need in a frequency sorted dictionary to cover 50% of all word instances in the language? 90%?
+4. How do you evaluate how many of the words come from foreign languages?
+5.Can you think of a way to increase the coverage -- identifying words that may not be in the corpora or using a smaller number of words in the dictionary to cover the same number of phrases?
+
+
+## Load the data
+
+```{r setup, warning=FALSE, message=FALSE}
+# kintr settings
+knitr::opts_knit$set(root.dir = "~/Documents/GitHub/predictive-text-model-swift-key")
+```
+
+```{r warning=FALSE, message=FALSE}
+# libraries
+library(quanteda)
+library(readtext)
+library(tidyverse)
+```
+
+
+```{r}
+# read all data
+news_big <- readtext("data/raw/en_US.news.txt")
+blogs_big <- readtext("data/raw/en_US.blogs.txt")
+twitter_big <- readtext("data/raw/en_US.twitter.txt")
+
+# create corpus
+news_corp <- corpus(news_big)
+blogs_corp <- corpus(blogs_big)
+twitter_corp <- corpus(twitter_big)
+
+# segment the corpus to lines
+news_corp <- corpus_segment(news_corp, pattern = "\n")
+blogs_corp <- corpus_segment(blogs_corp, pattern = "\n")
+twitter_corp <- corpus_segment(twitter_corp, pattern = "\n")
+
+# add all corpus together
+text_corp <- news_corp + blogs_corp + twitter_corp
+```
+
+
+## Clean the corpus
+```{r}
+set.seed(2019-07-24)
+sample_corp <- corpus_sample(text_corp, size = 100000)
+
+# replace errors in corpus to avoid problems when tokenizing
+texts(sample_corp) <- gsub(pattern = "â€™", replacement = "'", x = texts(sample_corp))
+texts(sample_corp) <- gsub(pattern = " â ", replacement = "and", x = texts(sample_corp))
+texts(sample_corp) <- gsub(pattern = "â€œ", replacement = "", x = texts(sample_corp))
+
+# remove anything that is not alpha or number
+texts(sample_corp) <- stringr::str_replace_all(texts(sample_corp),"[^a-zA-Z\\s]", "")
+
+# create the tokens
+doc.tokens <- tokens(sample_corp)
+
+# clean the tokens
+doc.tokens <- tokens(doc.tokens, remove_numbers = TRUE, remove_punct = TRUE,
+                     remove_separators = TRUE, remove_symbols = TRUE)
+doc.tokens <- tokens_select(doc.tokens, stopwords("english"), selection = "remove")
+doc.tokens <- tokens_tolower(doc.tokens)
+
+# get rid of bad tokens
+doc.tokens <- tokens_replace(doc.tokens, pattern = "â", replacement = "and")
+doc.tokens <- tokens_select(doc.tokens, pattern = "s", selection = "remove")
+
+# replace bad characters
+patterns <- c("â")
+doc.tokens <- as.tokens(lapply(doc.tokens, gsub, pattern = patterns, replacement = ""))
+
+# word stem
+# doc.tokens <- tokens_wordstem(doc.tokens)
+```
+
+## Add some features to the corpus
+```{r}
+# calcualte length and add to corpus
+len <- sapply(texts(sample_corp), nchar)
+docvars(sample_corp, "Length") <- len
+```
+
+
+## Questions to answer
+
+### Q #1
+
+Some words are more frequent than others - what are the distributions of word frequencies? 
+
+Distribution of word frequencies:
+```{r}
+# create a document feature matrix (dfm)
+doc.dfm <- dfm(doc.tokens)
+
+# find top n features
+topfeatures(doc.dfm, 10)
+```
+
+
+### Q #2
+
+What are the frequencies of 2-grams and 3-grams in the dataset?
+```{r}
+# first, generate some ngrams from the tokens we created
+
+toks.ngram.2 <- tokens_ngrams(doc.tokens, n = 2)
+head(toks.ngram.2)
+
+toks.ngram.3 <- tokens_ngrams(doc.tokens, n = 3)
+head(toks.ngram.3)
+```
+
+Create a dfm for the ngrams
+```{r}
+ngrams.2.dfm <- dfm(toks.ngram.2)
+topfeatures(ngrams.2.dfm, 20)
+```
+
+```{r}
+ngrams.3.dfm <- dfm(toks.ngram.3)
+topfeatures(ngrams.3.dfm, 20)
+```
+
+### Q #3
+
+How many unique words do you need in a frequency sorted dictionary to cover 50% of all word instances in the language? 90%?
+```{r}
+# create a dataframe with the word frequency
+num_features <- length(doc.dfm@Dimnames$features)
+dict <- as.data.frame(topfeatures(doc.dfm, n = num_features))
+colnames(dict) <- c("word.count")
+
+# add cum sum and percentage
+dict$cum_sum <- cumsum(dict$word.count)
+dict$cum_sum_percent <- dict$cum_sum / sum(dict$word.count)
+
+# How many words to cover 50% of instances?
+dict[dict$cum_sum_percent > 0.5 & dict$cum_sum_percent < 0.501,]
+
+# 654,447
+
+# How many words to cover 50% of instances?
+dict[dict$cum_sum_percent > 0.9 & dict$cum_sum_percent < 0.90001,]
+
+# 1,177,992
+```
+
+
+
+### Q #4
+
+How do you evaluate how many of the words come from foreign languages?
+```{r}
+dict$language <- cld3::detect_language(rownames(dict))
+dict
+```
+
+
+
+### Q #5
+
+Can you think of a way to increase the coverage -- identifying words that may not be in the corpora or using a smaller number of words in the dictionary to cover the same number of phrases?
