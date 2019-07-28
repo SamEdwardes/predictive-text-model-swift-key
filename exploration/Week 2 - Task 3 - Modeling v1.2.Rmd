@@ -49,18 +49,30 @@ rm(news_corp, blogs_corp, twitter_corp,
 Remove questionable characters from the corpus that could impact the results
 
 ```{r}
-# break the data into training, testing, and
-set.seed(2019-07-24)
+clean_corpus <- function(corp){
+    
+    # remove anything that is not alpha or number
+    texts(corp) <- stringr::str_replace_all(texts(corp),"[^a-zA-Z\\s]", "")
+    return(corp)
+    
+}
+```
+
+
+Select training and testing data
+
+```{r}
 pop_size <- length(all_corp$documents$texts)
-train_corp <- corpus_sample(all_corp, size = pop_size * 0.01)
 
-# replace errors in corpus to avoid problems when tokenizing
-# texts(train_corp) <- gsub(pattern = "â€™", replacement = "'", x = texts(train_corp))
-# texts(train_corp) <- gsub(pattern = " â ", replacement = "and", x = texts(train_corp))
-# texts(train_corp) <- gsub(pattern = "â€œ", replacement = "", x = texts(train_corp))
+# define training data
+set.seed(2019-07-24)
+train_corp <- corpus_sample(all_corp, size = pop_size * 0.03)
+train_corp <- clean_corpus(train_corp)
 
-# remove anything that is not alpha or number
-texts(train_corp) <- stringr::str_replace_all(texts(train_corp),"[^a-zA-Z\\s]", "")
+# define testing data
+set.seed(2019-07-25)
+test_corp <- corpus_sample(all_corp, size = pop_size * 0.001)
+test_corp <- clean_corpus(test_corp)
 ```
 
 ## Process tokens
@@ -82,6 +94,11 @@ process_tokens <- function(toks){
     
     # get rid of stop words
     # toks <- tokens_select(toks, stopwords("english"), selection = "remove")
+    
+    # after some analysis, it was determined that stopwords should not be removed. 
+    # It was helpful to remoe stopwords when you wanted to predict the answer to a question 
+    # (e.g. who is the president of the united states?). 
+    # But, it was not helpful for predicting what would by typed next
     
     # get rid of tokens that do not mean anything
     toks <- tokens_replace(toks, pattern = "â", replacement = "and")
@@ -108,7 +125,6 @@ train.tokens <- process_tokens(train.tokens)
 
 
 ## Build n-grams
-
 
 Build ngrams ranging in size from 2 to 4.
 
@@ -151,6 +167,8 @@ rm(train.dfm1, train.dfm2, train.dfm3, train.dfm4,
 
 ## The model
 
+See for inspiration:
+
 https://rstudio-pubs-static.s3.amazonaws.com/496495_29c70e2d6a7644aea687cbc78af975b8.html
 
 ```{r}
@@ -176,6 +194,7 @@ predict_next_word <- function(input_text){
         search.dfm <- train.dfm %>% filter (ngrams >= num + 1)
         # search the dataframe
         temp <- search.dfm[grepl(pattern = search_term, x = search.dfm$feature), ]
+        if(nrow(temp) == 0) next
         temp$ngram.size <- num
         # calculate frequncy and score
         total_ngrams <- sum(temp$frequency)
@@ -184,6 +203,14 @@ predict_next_word <- function(input_text){
             mutate(score = num + frequency.percent)
         # join the results together
         potential_matches <- union_all(temp, potential_matches)
+    }
+    
+    # check to see if there are matches
+    if(nrow(potential_matches) == 0) {
+        return(list("input_text" = input_text,
+                    "input_toks" = input_toks,
+                    "potential_matches" = NULL
+    ))
     }
     
     # arrange the potential matches to find the most likely
@@ -205,12 +232,85 @@ predict_next_word <- function(input_text){
                 ))
 }
 
-z <- predict_next_word("president of")
+# Only return the top word
+get_word <- function(x){
+    y <- predict_next_word(x)
+    if (is.null(y$potential_matches)){
+        return("New word, no prediction")
+    }
+    return(y$potential_matches[1,2])
+}
+
+
+# TESTING THE FUNCTIONS
+
+test_text <- test.text[6]
+z <- predict_next_word(test_text)
 z
+
+get_word(test_text)
 ```
 
+## Model accuracy
+
+Build the test data
 
 ```{r}
+# tokenize test data
+test.tokens <- tokens(test_corp)
 
+# create the test data
+test.text <- c()
+test.correct.prediction <- c()
+for (test_id in 1:length(test.tokens)){
+    
+    # figure out how many words in text
+    num_words <- length(test.tokens[[test_id]]) - 1 # minus 1 so that there is always at least one word to predict
+    if(num_words <= 1) next
+    cutoff <- as.integer(runif(1, 1, num_words))
+    
+    temp.search <- paste(test.tokens[[test_id]][1:cutoff], collapse = " ")
+    temp.prediction <- test.tokens[[test_id]][cutoff+1]
+    
+    # print(temp.search); print(temp.prediction)
+    
+    test.text <- append(test.text, temp.search)
+    test.correct.prediction <- append(test.correct.prediction, temp.prediction)
+}
+```
+
+Run the model on the test data
+
+```{r}
+# Select how many tests you want to run
+num_tests <- 500
+
+# create a dataframe to hold the results
+test_result_df <- data.frame(test.text[1:num_tests], test.correct.prediction[1:num_tests]);
+names(test_result_df) <- c("test.text", "test.correct.prediciton")
+rownames(test_result_df) <- 1:num_tests
+
+# run the predction
+prediction.result <- sapply(test.text[1:num_tests], get_word)
+test_result_df <- cbind(test_result_df, prediction.result)
+
+# clean the prediction results
+test_result_df <- test_result_df %>%
+    mutate(prediction.result = as.character(prediction.result),
+           test.correct.prediciton = as.character(test.correct.prediciton),
+           correct = prediction.result == test.correct.prediciton) %>%
+   # mutate(correct = case_when(prediction.result == test.correct.prediciton ~ TRUE, TRUE ~ FALSE)) %>%
+    select(prediction.result, test.correct.prediciton, correct, test.text)
+
+
+
+# summarise the results
+num_correct <- sum(test_result_df$correct)
+num_obs <- nrow(test_result_df)
+
+print(paste0("Correct predictions: ", num_correct))
+print(paste0("Total predictions: ", num_obs))
+print(paste0("Accuracy rate: ", num_correct/num_obs))
+test_result_df
 ```
 
