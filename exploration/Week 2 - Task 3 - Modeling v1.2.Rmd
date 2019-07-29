@@ -1,19 +1,34 @@
 ---
+title: "Building text prediction model"
+subtitle: "Week 2 - Task 3"
+author: "Sam Edwardes"
+date: "2019-07-25"
 output: html_notebook
 ---
 
-```{r setup, warning=FALSE, message=FALSE}
+```{r setup, warning=FALSE, message=FALSE, echo=FALSE}
 # kintr settings
 knitr::opts_knit$set(root.dir = "~/Documents/GitHub/predictive-text-model-swift-key")
 ```
+## Background
 
+The purpose of this document is to walk the reader through building of my text prediction model. The models works by:
+
+- A "corpus" is created by combing twitter, news, and blog tests from the internet (data can be [downloaded here](https://d396qusza40orc.cloudfront.net/dsscapstone/dataset/Coursera-SwiftKey.zip))
+- A random sample of the corpus is taken to server as training data for the model. Additionally the entire data set is very large (over 1 GB), so using the entire dataset to build the model will result in a very slow application
+- An n-gram data feature matrix is created for one to four gram sequences
+- When text is entered, the model  attempts to find the longest matching n-gram
+- The last word of the longest matching n-gram with the highest probabily based on the training data is returned as the prediction
+
+## Environment
+
+The following packages are required to build the model.
 
 ```{r warning=FALSE, message=FALSE}
 # libraries
 library(quanteda)
 library(readtext)
 library(tidyverse)
-library(caret)
 ```
 
 ## Load the data
@@ -46,7 +61,7 @@ rm(news_corp, blogs_corp, twitter_corp,
 
 ## Clean the corpus
 
-Remove questionable characters from the corpus that could impact the results
+Remove questionable characters from the corpus that could impact the results.
 
 ```{r}
 clean_corpus <- function(corp){
@@ -59,14 +74,14 @@ clean_corpus <- function(corp){
 ```
 
 
-Select training and testing data
+Select training and testing data.
 
 ```{r}
 pop_size <- length(all_corp$documents$texts)
 
 # define training data
 set.seed(2019-07-24)
-train_corp <- corpus_sample(all_corp, size = pop_size * 0.03)
+train_corp <- corpus_sample(all_corp, size = pop_size * 0.05)
 train_corp <- clean_corpus(train_corp)
 
 # define testing data
@@ -77,7 +92,7 @@ test_corp <- clean_corpus(test_corp)
 
 ## Process tokens
 
-Create a function to apply to tokens to consistently clean them
+Create a function to apply to tokens to consistently clean them. This function will be used to clean the training data, as well as any text that a prediction will be made on.
 
 ```{r}
 
@@ -136,7 +151,7 @@ train.ngram4 <-tokens_ngrams(train.tokens, n = 4)
 ```
 
 
-Turn into a data feature matrix (dfm), calculate frequencies, then turn into a data frame
+Turn into a data feature matrix (dfm), calculate frequencies, then turn into a data frame.
 
 ```{r}
 # create a document feature matrix (dfm) for up to 4 ngrams
@@ -167,9 +182,20 @@ rm(train.dfm1, train.dfm2, train.dfm3, train.dfm4,
 
 ## The model
 
-See for inspiration:
+Two functions were created to execute the model:
 
-https://rstudio-pubs-static.s3.amazonaws.com/496495_29c70e2d6a7644aea687cbc78af975b8.html
+**predict_next_word()**
+
+- input: takes any string as an input and predicts what word will come next.
+- returns: a list containing...
+-- "input_text": the raw text entered into the search.
+-- "input_tokens": the tokens that were used to perform the prediction.
+-- "potential_matches": a dataframe containing the top 10 matches and probabilities.
+
+**get_word**
+
+- input: takes any string as an input and predicts what word will come next.
+- returns: only the top predicted word.
 
 ```{r}
 predict_next_word <- function(input_text){
@@ -216,7 +242,7 @@ predict_next_word <- function(input_text){
     # arrange the potential matches to find the most likely
     potential_matches <- potential_matches %>%
         arrange(desc(score), desc(frequency.percent)) %>% 
-        head(1000)
+        head(10)
     
     # get the best predicted next word
     potential_matches$split_location <- stringi::stri_locate_last(str = potential_matches$feature, regex = "_")[,2]
@@ -243,17 +269,14 @@ get_word <- function(x){
 
 
 # TESTING THE FUNCTIONS
-
-test_text <- test.text[6]
-z <- predict_next_word(test_text)
-z
-
+test_text <- "Holy cow this prediction is"
+z <- predict_next_word(test_text); z
 get_word(test_text)
 ```
 
 ## Model accuracy
 
-Build the test data
+Build the test data.
 
 ```{r}
 # tokenize test data
@@ -279,11 +302,11 @@ for (test_id in 1:length(test.tokens)){
 }
 ```
 
-Run the model on the test data
+Run the model on the test data.
 
 ```{r}
 # Select how many tests you want to run
-num_tests <- 500
+num_tests <- 10
 
 # create a dataframe to hold the results
 test_result_df <- data.frame(test.text[1:num_tests], test.correct.prediction[1:num_tests]);
@@ -311,6 +334,11 @@ num_obs <- nrow(test_result_df)
 print(paste0("Correct predictions: ", num_correct))
 print(paste0("Total predictions: ", num_obs))
 print(paste0("Accuracy rate: ", num_correct/num_obs))
+
 test_result_df
+```
+
+```{r}
+print("The end")
 ```
 
