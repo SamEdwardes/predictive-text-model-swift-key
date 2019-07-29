@@ -6,7 +6,7 @@ Capstone project for the Data Science Specialization through Coursera and John H
 
 - [Quizzes](quiz) 
 - [R markdown exploratory analysis](exploration)
-- Shiny App ([ur.R](ur.R) and [server.R](server.R))
+- Shiny App ([ui.R](ui.R) and [server.R](server.R))
 - Presentation
 
 ## Resources

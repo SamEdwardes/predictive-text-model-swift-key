@@ -29,14 +29,6 @@ navbarPage("Text Prediction Model",
                         
                     )
                     
-                ),
-           tabPanel("GitHub README",
-                    fluidPage(
-                        mainPanel(
-                            includeMarkdown("README.MD")
-                        )
-                        
-                    )
                 )
            )
 
