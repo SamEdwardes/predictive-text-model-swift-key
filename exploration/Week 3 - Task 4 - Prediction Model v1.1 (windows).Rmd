@@ -1,0 +1,389 @@
+---
+title: "Building text prediction model"
+subtitle: "Week 2 - Task 3"
+author: "Sam Edwardes"
+date: "2019-07-25"
+output: html_notebook
+---
+
+```{r setup, warning=FALSE, message=FALSE, echo=FALSE}
+# kintr settings
+if(Sys.info()["sysname"] == "Windows"){ # working directory for my windows machine
+    knitr::opts_knit$set(root.dir = "~/GitHub/predictive-text-model-swift-key")
+} else { # working directory for my Macbook Pro
+    knitr::opts_knit$set(root.dir = "~/Documents/GitHub/predictive-text-model-swift-key")
+}
+
+```
+## Background
+
+The purpose of this document is to walk the reader through building of my text prediction model. The models works by:
+
+- A "corpus" is created by combing twitter, news, and blog tests from the internet (data can be [downloaded here](https://d396qusza40orc.cloudfront.net/dsscapstone/dataset/Coursera-SwiftKey.zip))
+- A random sample of the corpus is taken to server as training data for the model. Additionally the entire data set is very large (over 1 GB), so using the entire dataset to build the model will result in a very slow application
+- An n-gram data feature matrix is created for one to four gram sequences
+- When text is entered, the model  attempts to find the longest matching n-gram
+- The last word of the longest matching n-gram with the highest probabily based on the training data is returned as the prediction
+
+## Environment
+
+The following packages are required to build the model.
+
+```{r warning=FALSE, message=FALSE}
+# libraries
+library(quanteda)
+library(readtext)
+library(tidyverse)
+```
+
+## Load the data
+
+Read the text data from local disc. Combine all the files to create a single corpus document.
+
+```{r}
+# read all data
+news_big <- readtext("data/raw/en_US.news.txt")
+blogs_big <- readtext("data/raw/en_US.blogs.txt")
+twitter_big <- readtext("data/raw/en_US.twitter.txt")
+
+# create corpus
+news_corp <- corpus(news_big)
+blogs_corp <- corpus(blogs_big)
+twitter_corp <- corpus(twitter_big)
+
+# segment the corpus to lines
+news_corp <- corpus_segment(news_corp, pattern = "\n")
+blogs_corp <- corpus_segment(blogs_corp, pattern = "\n")
+twitter_corp <- corpus_segment(twitter_corp, pattern = "\n")
+
+# add all corpus together
+all_corp <- news_corp + blogs_corp + twitter_corp
+
+rm(news_corp, blogs_corp, twitter_corp,
+   news_big, blogs_big, twitter_big)
+```
+
+
+## Clean the corpus
+
+Remove questionable characters from the corpus that could impact the results.
+
+```{r}
+# clean_corpus
+# returns: a corpus object with "cleaned" text, such that we have removed all characters that are not A:Z
+# arguments: 
+#   - corp = corpus object from quanteda
+
+clean_corpus <- function(corp){
+    
+    # remove anything that is not alpha or number
+    texts(corp) <- stringr::str_replace_all(texts(corp),"[^a-zA-Z\\s]", "")
+    return(corp)
+    
+}
+```
+
+
+Select training and testing data.
+
+```{r}
+pop_size <- length(all_corp$documents$texts)
+
+# define training data
+set.seed(2019-07-24)
+train_corp <- corpus_sample(all_corp, size = pop_size * 0.01)
+train_corp <- clean_corpus(train_corp)
+
+# define testing data
+set.seed(2019-07-25)
+test_corp <- corpus_sample(all_corp, size = pop_size * 0.001)
+test_corp <- clean_corpus(test_corp)
+```
+
+## Process tokens
+
+Create a function to apply to tokens to consistently clean them. This function will be used to clean the training data, as well as any text that a prediction will be made on.
+
+```{r}
+# process_tokens
+# returns: a tokens object that has been processed
+# arguments: 
+#   - toks = tokens object from quanteda
+
+process_tokens <- function(toks){
+    
+    # create tokens and do basic processing
+    toks <- tokens(toks, 
+                   remove_numbers = TRUE, remove_punct = TRUE, remove_symbols = TRUE,
+                   remove_separators = TRUE, remove_twitter = TRUE, remove_hyphens = TRUE,
+                   remove_url = TRUE)
+    
+    # convert to lower case
+    toks <- tokens_tolower(toks)
+    
+    # word stem
+    toks <- tokens_wordstem(toks)
+    
+    return(toks)
+}
+```
+
+Apply the tokens processing to our training data.
+
+```{r}
+# create the tokens
+train.tokens <- tokens(train_corp)
+train.tokens <- process_tokens(train.tokens)
+```
+
+
+## Build n-grams
+
+Build ngrams ranging in size from 2 to 4.
+
+```{r}
+train.ngram1 <-tokens_ngrams(train.tokens, n = 1)
+train.ngram2 <-tokens_ngrams(train.tokens, n = 2)
+train.ngram3 <-tokens_ngrams(train.tokens, n = 3)
+train.ngram4 <-tokens_ngrams(train.tokens, n = 4)
+```
+
+
+Turn into a data feature matrix (dfm), calculate frequencies, then turn into a data frame.
+
+```{r}
+# create a document feature matrix (dfm) for up to 4 ngrams
+train.dfm1 <- textstat_frequency(dfm(train.ngram1))[,1:2]
+train.dfm1$ngrams <- 1
+train.dfm2 <- textstat_frequency(dfm(train.ngram2))[,1:2]
+train.dfm2$ngrams <- 2
+train.dfm3 <- textstat_frequency(dfm(train.ngram3))[,1:2]
+train.dfm3$ngrams <- 3
+train.dfm4 <- textstat_frequency(dfm(train.ngram4))[,1:2]
+train.dfm4$ngrams <- 4
+
+# combine all the dfms together
+train.dfm <- rbind(train.dfm1, train.dfm2, train.dfm3, train.dfm4)
+
+# Only keep n fetures with at least 2 observations
+train.dfm <- train.dfm %>% filter(frequency >= 2)
+
+# Check results
+table(train.dfm$ngrams)
+head(train.dfm, 20)
+
+rm(train.dfm1, train.dfm2, train.dfm3, train.dfm4,
+   train.ngram1, train.ngram2, train.ngram3, train.ngram4)
+```
+
+## The model
+
+Two functions were created to execute the model:
+
+**predict_next_word()**
+
+- input: takes any string as an input and predicts what word will come next.
+- returns: a list containing...
+-- "input_text": the raw text entered into the search.
+-- "input_tokens": the tokens that were used to perform the prediction.
+-- "potential_matches": a dataframe containing the top 10 matches and probabilities.
+
+**get_word**
+
+- input: takes any string as an input and predicts what word will come next.
+- returns: only the top predicted word.
+
+**get_word3**
+
+- same as get_word, but returns the top 3 results
+
+```{r}
+predict_next_word <- function(input_text){
+    
+    # process the input text
+    input_toks <- tokens(input_text)
+    input_toks <- process_tokens(input_toks)
+    
+    # determine the range of ngrams to search
+    num_toks <- length(input_toks[[1]])
+    ngram_range <- min(3, num_toks):1
+    
+    # loop through each range of ngrams to find matches
+    potential_matches <- data.frame()
+    for (num in ngram_range){
+    
+        # create the ngrams
+        search_ngrams <- tokens_ngrams(input_toks, num)
+        # create the search phrase
+        search_term <- paste0("^", tail(search_ngrams[[1]], 1), "_")
+        # identify the in scope search area
+        search.dfm <- train.dfm %>% filter (ngrams == num + 1)
+        # search the dataframe
+        temp <- search.dfm[grepl(pattern = search_term, x = search.dfm$feature), ]
+        if(nrow(temp) == 0) next
+        temp$ngram.size <- num
+        # calculate frequncy and score
+        total_ngrams <- sum(temp$frequency)
+        temp <- temp %>%
+            mutate(frequency.percent = frequency / total_ngrams) %>%
+            mutate(score = num + frequency.percent)
+        # join the results together
+        potential_matches <- union_all(temp, potential_matches)
+        if(nrow(potential_matches) >= 3) break # break the loop if 3 predictions have been found to speed up algo
+
+    }
+    
+    # check to see if there are matches
+    if(nrow(potential_matches) == 0) {
+        return(list("input_text" = input_text,
+                    "input_toks" = input_toks,
+                    "potential_matches" = NULL
+    ))
+    }
+    
+    # arrange the potential matches to find the most likely
+    potential_matches <- potential_matches %>%
+        arrange(desc(score), desc(frequency.percent)) %>% 
+        head(10)
+    
+    # get the best predicted next word
+    potential_matches$split_location <- stringi::stri_locate_last(str = potential_matches$feature, regex = "_")[,2]
+    potential_matches <- potential_matches %>%
+        mutate(prediction = substr(feature, split_location + 1, nchar(feature))) %>%
+        select(feature, prediction, score, frequency.percent, ngram.size, ngrams, frequency)
+    
+    
+    # return results
+    return(list("input_text" = input_text,
+                "input_toks" = input_toks,
+                "potential_matches" = potential_matches
+                ))
+}
+
+# Only return the top word
+get_word <- function(x){
+    y <- predict_next_word(x)
+    if (is.null(y$potential_matches)){
+        return("New word, no prediction")
+    }
+    top <- y$potential_matches[1,2] 
+    return(top)
+}
+
+# Only return the top 3 words
+get_word3 <- function(x){
+    y <- predict_next_word(x)
+    if (is.null(y$potential_matches)){
+        return("New word, no prediction")
+    }
+    potential_matches <- y$potential_matches
+    top <- unique(y$potential_matches$prediction)
+    top3 <- top[1:3]
+    return(top3)
+}
+
+
+# TESTING THE FUNCTIONS
+test_text <- "I want to go"
+z <- predict_next_word(test_text); z
+get_word(test_text)
+get_word3(test_text)
+```
+
+## Model accuracy
+
+Build the test data.
+
+```{r}
+# tokenize test data
+test.tokens <- tokens(test_corp)
+
+# create the test data
+test.text <- c()
+test.correct.prediction <- c()
+for (test_id in 1:length(test.tokens)){
+    
+    # figure out how many words in text
+    num_words <- length(test.tokens[[test_id]]) - 1 # minus 1 so that there is always at least one word to predict
+    if(num_words <= 1) next
+    cutoff <- as.integer(runif(1, 1, num_words))
+    
+    temp.search <- paste(test.tokens[[test_id]][1:cutoff], collapse = " ")
+    temp.prediction <- test.tokens[[test_id]][cutoff+1]
+    
+    # print(temp.search); print(temp.prediction)
+    
+    test.text <- append(test.text, temp.search)
+    test.correct.prediction <- append(test.correct.prediction, temp.prediction)
+}
+```
+
+Run the model on the test data.
+
+```{r}
+# Select how many tests you want to run
+num_tests <- 1000
+
+# create a dataframe to hold the results
+test_result_df <- data.frame(test.text[1:num_tests], test.correct.prediction[1:num_tests]);
+names(test_result_df) <- c("test.text", "test.correct.prediciton")
+rownames(test_result_df) <- 1:num_tests
+
+# run the predction
+# prediction.result <- sapply(test.text[1:num_tests], get_word)
+# test_result_df <- cbind(test_result_df, prediction.result)
+
+prediction.result.3 <- sapply(test.text[1:num_tests], get_word3)
+
+# get_predictions
+# return: a character vecotr conainting prediction(n) for each string
+#   x: prediction results, which is a list containing the input string, and the top 3 predictions
+#   num: the prediction number you want to return, must be 1:3
+get_predictions <- function(x, num){
+    iteratations <- length(x)
+    predictions <- c()
+    for(i in 1:iteratations){
+        predictions <- append(predictions, x[[i]][num])
+        x[[i]][1]
+    }
+    return(predictions)
+}
+
+xx <- get_predictions(x = prediction.result.3, 1)
+
+prediction.result1 <- get_predictions(x = prediction.result.3, 1)
+prediction.result2 <- get_predictions(x = prediction.result.3, 2)
+prediction.result3 <- get_predictions(x = prediction.result.3, 3)
+test_result_df <- cbind(test_result_df, prediction.result1, prediction.result2, prediction.result3)
+
+# determine if any of the predictions were correct
+test_result_df <- test_result_df %>%
+    # must convert from factors to characters for comparison operators to work
+    mutate(correct1 = as.character(prediction.result1) == as.character(test.correct.prediciton),
+           correct2 = as.character(prediction.result2) == as.character(test.correct.prediciton),
+           correct3 = as.character(prediction.result3) == as.character(test.correct.prediciton)) %>%
+    
+    # assess if 1 of 3 predictions was correct
+    mutate(correct = replace_na((correct1 + correct2 + correct3) > 0, FALSE))
+
+
+
+# summarise the results
+num_correct <- sum(test_result_df$correct)
+num_obs <- nrow(test_result_df)
+num.no.predict <- sum(test_result_df$prediction.result1 == "New word, no prediction", na.rm = TRUE)
+
+print(paste0("Correct predictions: ", num_correct))
+print(paste0("Total predictions: ", num_obs))
+print(paste0("Accuracy rate: ", num_correct/num_obs))
+print(paste0("Number of no predictions: ", num.no.predict))
+print(paste0("Number of no predictions %: ", num.no.predict/num_obs))
+
+test_result_df
+```
+
+
+
+```{r}
+print("The end")
+```
