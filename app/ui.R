@@ -3,9 +3,10 @@ library(quanteda)
 library(readtext)
 library(tidyverse)
 library(shiny)
+library(data.table)
+
 
 # UI
-
 navbarPage("Text Prediction Model",
            tabPanel("Make predictions",
                     fluidPage(
@@ -28,18 +29,14 @@ navbarPage("Text Prediction Model",
                         mainPanel(
                             includeMarkdown("app_documentation_tab.MD")
                         )
-                        
                     )
-                    
                 ),
            tabPanel("Model Accuracy",
                     fluidPage(
                         mainPanel(
                             #includeMarkdown("app_documentation_tab.MD")
                         )
-                        
                     )
-                    
                 )
            )
 

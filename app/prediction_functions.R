@@ -2,6 +2,7 @@
 library(quanteda)
 library(readtext)
 library(tidyverse)
+library(data.table)
 
 
 # process_tokens
@@ -36,6 +37,8 @@ process_tokens <- function(toks){
 #   input_text = takes any string as an input and predicts what word will come next.
 
 predict_next_word <- function(input_text){
+    
+    train.dfm <- fread("data/train.dfm.csv")
     
     # process the input text
     input_toks <- tokens(input_text)

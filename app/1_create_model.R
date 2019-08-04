@@ -2,6 +2,7 @@
 library(quanteda)
 library(readtext)
 library(tidyverse)
+library(data.table)
 
 # get other functions
 source("app/prediction_functions.R")
@@ -128,12 +129,12 @@ for (test_id in 1:length(test.tokens)){
 num_tests <- length(test.tokens)
 
 # create a dataframe to hold the results
-test_result_df <- data.frame(test.text[1:num_tests], test.correct.prediction[1:num_tests]);
-names(test_result_df) <- c("test.text", "test.correct.prediciton")
-rownames(test_result_df) <- 1:num_tests
+test.result.df <- data.frame(test.text[1:num_tests], test.correct.prediction[1:num_tests]);
+names(test.result.df) <- c("test.text", "test.correct.prediciton")
+rownames(test.result.df) <- 1:num_tests
 
 # Save model to disk ----
-save(train.dfm, file = "app/train.dfm.Rda")
-save(test_result_df, file = "app/test_result_df.Rda")
+fwrite(test.result.df, file = "app/data/test.result.df.csv")
+fwrite(train.dfm, file = "app/data/train.dfm.csv")
 
 # END OF SCRIPT ----

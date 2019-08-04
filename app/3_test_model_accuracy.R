@@ -2,17 +2,17 @@
 source("app/prediction_functions.R")
 
 # load model ----
-if(!exists("train.dfm")){load("app/train.dfm.Rda")}
-if(exists("test_result_df")){rm(test_result_df)}
-if(!exists("test_result_df")){load("app/test_result_df.Rda")}
+if(!exists("train.dfm")){train.dfm <- fread("app/train.dfm.csv")}
+if(exists("test.result.df")){rm(test.result.df)}
+if(!exists("test.result.df")){test.result.df <- fread("app/test.result.df.csv")}
 
 # Assess accuracy ----
 
-num_predictions <- 1000
-test_result_df <- test_result_df[1:num_predictions,]
+num_predictions <- 100
+test.result.df <- test.result.df[1:num_predictions,]
 
 # run the prediction
-prediction.result.3 <- sapply(as.character(test_result_df$test.text), get_word3)
+prediction.result.3 <- sapply(as.character(test.result.df$test.text), get_word3)
 
 # get_predictions
 # return: a character vecotr conainting prediction(n) for each string
@@ -33,10 +33,10 @@ xx <- get_predictions(x = prediction.result.3, 1)
 prediction.result1 <- get_predictions(x = prediction.result.3, 1)
 prediction.result2 <- get_predictions(x = prediction.result.3, 2)
 prediction.result3 <- get_predictions(x = prediction.result.3, 3)
-test_result_df <- cbind(test_result_df, prediction.result1, prediction.result2, prediction.result3)
+test.result.df <- cbind(test.result.df, prediction.result1, prediction.result2, prediction.result3)
 
 # determine if any of the predictions were correct
-test_result_df <- test_result_df %>%
+test.result.df <- test.result.df %>%
     # must convert from factors to characters for comparison operators to work
     mutate(correct1 = as.character(prediction.result1) == as.character(test.correct.prediciton),
            correct2 = as.character(prediction.result2) == as.character(test.correct.prediciton),
@@ -48,9 +48,9 @@ test_result_df <- test_result_df %>%
 
 
 # summarise the results
-num_correct <- sum(test_result_df$correct)
-num_obs <- nrow(test_result_df)
-num.no.predict <- sum(test_result_df$prediction.result1 == "New word, no prediction", na.rm = TRUE)
+num_correct <- sum(test.result.df$correct)
+num_obs <- nrow(test.result.df)
+num.no.predict <- sum(test.result.df$prediction.result1 == "New word, no prediction", na.rm = TRUE)
 
 print(paste0("Correct predictions: ", num_correct))
 print(paste0("Total predictions: ", num_obs))
@@ -58,4 +58,4 @@ print(paste0("Accuracy rate: ", num_correct/num_obs))
 print(paste0("Number of no predictions: ", num.no.predict))
 print(paste0("Number of no predictions %: ", num.no.predict/num_obs))
 
-View(test_result_df)
+View(test.result.df)
