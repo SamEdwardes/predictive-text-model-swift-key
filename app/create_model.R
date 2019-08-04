@@ -99,4 +99,41 @@ head(train.dfm, 20)
 rm(train.dfm1, train.dfm2, train.dfm3, train.dfm4,
    train.ngram1, train.ngram2, train.ngram3, train.ngram4)
 
+
+
+# Create the test data ----
+# tokenize test data
+test.tokens <- tokens(test_corp)
+
+# create the test data
+test.text <- c()
+test.correct.prediction <- c()
+for (test_id in 1:length(test.tokens)){
+    
+    # figure out how many words in text
+    num_words <- length(test.tokens[[test_id]]) - 1 # minus 1 so that there is always at least one word to predict
+    if(num_words <= 1) next
+    cutoff <- as.integer(runif(1, 1, num_words))
+    
+    temp.search <- paste(test.tokens[[test_id]][1:cutoff], collapse = " ")
+    temp.prediction <- test.tokens[[test_id]][cutoff+1]
+    
+    # print(temp.search); print(temp.prediction)
+    
+    test.text <- append(test.text, temp.search)
+    test.correct.prediction <- append(test.correct.prediction, temp.prediction)
+}
+
+# Select how many tests you want to run
+num_tests <- length(test.tokens)
+
+# create a dataframe to hold the results
+test_result_df <- data.frame(test.text[1:num_tests], test.correct.prediction[1:num_tests]);
+names(test_result_df) <- c("test.text", "test.correct.prediciton")
+rownames(test_result_df) <- 1:num_tests
+
+# Save model to disk ----
+save(train.dfm, file = "app/train.dfm.Rda")
+save(test_result_df, file = "app/test_result_df.Rda")
+
 # END OF SCRIPT ----
