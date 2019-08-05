@@ -1,7 +1,7 @@
 ---
-title: "XX"
+title: "Text Prediction Model"
 author: "Sam Edwardes"
-date: "05/08/2019"
+date: "2019-08-05"
 output: ioslides_presentation
 ---
 
@@ -9,11 +9,11 @@ output: ioslides_presentation
 knitr::opts_chunk$set(echo = FALSE)
 ```
 
-## Background
+## Background {.smaller}
 
 As part of the JHU/Coursera Data Science course we are required to build a text prediction model. The objective of the model is to predict the next word that you wish to type.
 
-![](https://i.imgur.com/TyJqU2y.png)
+![](https://i.imgur.com/TyJqU2yl.png)
 
 
 ## How the model works {.smaller}
@@ -27,7 +27,7 @@ The model was developed using data from twitter, blogs, and news sites. The mode
 - If the model is not able to find those three words ever occurring, it will back of and search for *"of president"*, if no matches are found it will further back-off and search for *"president"*
 
 
-## Model accuracy
+## Model accuracy {.smaller}
 
 The model was tested on 1,000 test cases. The model was able to obtain an accuracy rate of 20% based on one of the top 3 predictions being correct.
 ```{r warnings=FALSE, message=FALSE}
@@ -42,7 +42,7 @@ ggplot(data = test.result.df, aes(x = "", y = correct, fill = correct)) +
 ```
 
 
-## Other considerations
+## Other considerations {.smaller}
 
 The model can be used at [ https://samedwardes.shinyapps.io/text-prediction-model/]( https://samedwardes.shinyapps.io/text-prediction-model/)
 

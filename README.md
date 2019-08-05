@@ -8,8 +8,8 @@ Capstone project for the Data Science Specialization through Coursera and John H
     - [Week 1 Quiz](https://github.com/SamEdwardes/predictive-text-model-swift-key/blob/master/quiz%20and%20reports/quiz%201.R)
 - Reports
     - [Week 2 Report](http://samedwardes.com/predictive-text-model-swift-key/quiz%20and%20reports/Week%202%20-%20Milestone%20Report.nb.html)
+    - [Week 6 Report](https://samedwardes.com/predictive-text-model-swift-key/quiz%20and%20reports/Week_6_-_Presentation.html#1) (*pitch slides*)
 - Shiny App ([ui.R](app/ui.R) and [server.R](app/server.R))
-- Presentation
 
 ## Resources
 

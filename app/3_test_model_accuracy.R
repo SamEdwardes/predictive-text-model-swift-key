@@ -66,3 +66,5 @@ print(paste0("Number of no predictions: ", num.no.predict))
 print(paste0("Number of no predictions %: ", num.no.predict/num_obs))
 
 View(test.result.df)
+
+fwrite(test.result.df, "data/test.result.df.csv")
