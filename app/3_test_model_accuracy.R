@@ -1,5 +1,12 @@
+# set working directory
+if(Sys.info()["sysname"] == "Windows"){ # working directory for my windows machine
+    setwd("~/GitHub/predictive-text-model-swift-key/app")
+} else { # working directory for my Macbook Pro
+    setwd("~/Documents/GitHub/predictive-text-model-swift-key/app")
+}
+
 # get functions ----
-source("app/prediction_functions.R")
+source("prediction_functions.R")
 
 # load model ----
 if(!exists("train.dfm")){train.dfm <- fread("data/train.dfm.csv")}
@@ -12,7 +19,7 @@ num_predictions <- 1000
 test.result.df <- test.result.df[1:num_predictions,]
 
 # run the prediction
-prediction.result.3 <- sapply(as.character(test.result.df$test.text), get_word3)
+prediction.result.3 <- sapply(as.character(test.result.df$test.text), get_word3, train.dfm)
 
 # get_predictions
 # return: a character vecotr conainting prediction(n) for each string

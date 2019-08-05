@@ -202,4 +202,3 @@ ngrams.3.dfm <- dfm(toks.ngram.3)
 topfeatures(ngrams.3.dfm, 20)
 ```
 
-

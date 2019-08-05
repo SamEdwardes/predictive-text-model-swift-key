@@ -4,15 +4,15 @@ library(readtext)
 library(tidyverse)
 library(data.table)
 
-# get other functions
-source("app/prediction_functions.R")
-
 # set working directory
 if(Sys.info()["sysname"] == "Windows"){ # working directory for my windows machine
     setwd("~/GitHub/predictive-text-model-swift-key")
 } else { # working directory for my Macbook Pro
     setwd("~/Documents/GitHub/predictive-text-model-swift-key")
 }
+
+# get other functions
+source("app/prediction_functions.R")
 
 # Read data ----
 
@@ -54,7 +54,7 @@ pop_size <- length(all_corp$documents$texts)
 
 # define training data
 set.seed(2019-07-24)
-train_corp <- corpus_sample(all_corp, size = pop_size * 0.01)
+train_corp <- corpus_sample(all_corp, size = pop_size * 0.05)
 train_corp <- clean_corpus(train_corp)
 
 # define testing data
@@ -134,8 +134,8 @@ names(test.result.df) <- c("test.text", "test.correct.prediciton")
 rownames(test.result.df) <- 1:num_tests
 
 # Save model to disk ----
-fwrite(test.result.df, file = "data/test.result.df.csv")
-fwrite(train.dfm, file = "data/train.dfm.csv")
-save(train.dfm, file = "data/train.dfm.rda")
+fwrite(test.result.df, file = "app/data/test.result.df.csv")
+fwrite(train.dfm, file = "app/data/train.dfm.csv")
+save(train.dfm, file = "app/data/train.dfm.rda")
 
 # END OF SCRIPT ----

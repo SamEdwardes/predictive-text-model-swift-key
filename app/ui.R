@@ -13,7 +13,7 @@ navbarPage("Text Prediction Model",
                         sidebarLayout(
                             sidebarPanel(
                                 textInput("prediction.text", "Type here:", value = "This prediction tool is..."),
-                                p("The text prediction model analyses text to predict what the next word should be. Type your text in the box below, and the algorithm with predict what word in thinks you wish to type next.")
+                                p("The text prediction model analyses text to predict what the next word should be. Type your text in the box below, and the algorithm will predict what word it thinks you wish to type next.")
                             ),
                             mainPanel(
                                 h3("Prediction Results"),

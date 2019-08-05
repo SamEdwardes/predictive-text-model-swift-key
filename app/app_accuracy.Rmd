@@ -5,11 +5,19 @@ output: html_document
 ```{r setup, include=FALSE, warning=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 
+if(Sys.info()["sysname"] == "Windows"){ # working directory for my windows machine
+    knitr::opts_knit$set(root.dir = "~/GitHub/predictive-text-model-swift-key/app")
+} else { # working directory for my Macbook Pro
+    knitr::opts_knit$set(root.dir = "~/Documents/GitHub/predictive-text-model-swift-key/app")
+}
+
 # Environment
 library(quanteda)
 library(readtext)
 library(tidyverse)
 library(data.table)
+
+source("prediction_functions.R")
 ```
 
 ## Model Accuracy
@@ -18,6 +26,7 @@ To assess the accuracy of the model data, we will test if the model is able to p
 
 ```{r}
 # read the test data
+train.dfm <- fread("data/train.dfm.csv")
 test.result.df <- fread("data/test.result.df.csv")
 test.result.df <- test.result.df %>% filter(nchar(test.text)>0)
 ```
@@ -32,12 +41,11 @@ tail(test.result.df)
 
 
 ```{r}
-
 num_predictions <- 1000
 test.result.df <- test.result.df[1:num_predictions,]
 
 # run the prediction
-prediction.result.3 <- sapply(as.character(test.result.df$test.text), get_word3)
+prediction.result.3 <- sapply(as.character(test.result.df$test.text), get_word3, train.dfm)
 
 # get_predictions
 # return: a character vecotr conainting prediction(n) for each string
@@ -53,13 +61,22 @@ get_predictions <- function(x, num){
     return(predictions)
 }
 
-xx <- get_predictions(x = prediction.result.3, 1)
-
 prediction.result1 <- get_predictions(x = prediction.result.3, 1)
 prediction.result2 <- get_predictions(x = prediction.result.3, 2)
 prediction.result3 <- get_predictions(x = prediction.result.3, 3)
 test.result.df <- cbind(test.result.df, prediction.result1, prediction.result2, prediction.result3)
+```
 
+
+The predictions look like
+```{r}
+head(test.result.df)
+tail(test.result.df)
+```
+
+Assess the accuracy of the predictions
+
+```{r}
 # determine if any of the predictions were correct
 test.result.df <- test.result.df %>%
     # must convert from factors to characters for comparison operators to work
@@ -76,13 +93,18 @@ test.result.df <- test.result.df %>%
 num_correct <- sum(test.result.df$correct)
 num_obs <- nrow(test.result.df)
 num.no.predict <- sum(test.result.df$prediction.result1 == "New word, no prediction", na.rm = TRUE)
+```
 
+Summary of results
+```{r}
 print(paste0("Correct predictions: ", num_correct))
 print(paste0("Total predictions: ", num_obs))
 print(paste0("Accuracy rate: ", num_correct/num_obs))
 print(paste0("Number of no predictions: ", num.no.predict))
 print(paste0("Number of no predictions %: ", num.no.predict/num_obs))
+```
 
-test.result.df
+```{r}
+print("END OF SCRIPT")
 ```
 
