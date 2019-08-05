@@ -18,6 +18,7 @@ The model was built as part of the JHU Coursera Datascience Capstone project. At
 The prediction algorithm considers the last 3 words that have been typed in order to generate a prediction. To predict the next word, an approach similar to the so called *Stupid Backoff* was used (this approach was selected as it is easier to understand, however it may not produce the most accurate result):
 
 - first, 
+- Scoreing is based on...
 
 ## Resources
 
