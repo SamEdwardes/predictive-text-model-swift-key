@@ -16,7 +16,9 @@ function(input, output) {
   prediction.summary <- reactive({predict_next_word(prediction.text(), train.dfm)})
       
   # render results ----
-  output$prediction.top.3 <- renderPrint(top3())
+  output$prediction1 <- renderText(top3()[1])
+  output$prediction2 <- renderText(top3()[2])
+  output$prediction3 <- renderText(top3()[3])
   output$prediction.results.summary <- renderPrint(prediction.summary())
         
   

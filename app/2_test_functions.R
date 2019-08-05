@@ -1,9 +1,9 @@
 # get functions ----
-source("app/prediction_functions.R")
+source("prediction_functions.R")
 
 # load model ----
 if(!exists("train.dfm")){
-    load("app/train.dfm.Rda")
+    load("data/train.dfm.rda")
 }
 
 # Test the functions ----

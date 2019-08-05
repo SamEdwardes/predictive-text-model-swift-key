@@ -1,0 +1,6 @@
+---
+title: "Quiz 2"
+output: html_notebook
+---
+
+# Q#1

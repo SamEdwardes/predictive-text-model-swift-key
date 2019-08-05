@@ -54,7 +54,7 @@ pop_size <- length(all_corp$documents$texts)
 
 # define training data
 set.seed(2019-07-24)
-train_corp <- corpus_sample(all_corp, size = pop_size * 0.05)
+train_corp <- corpus_sample(all_corp, size = pop_size * 0.10)
 train_corp <- clean_corpus(train_corp)
 
 # define testing data

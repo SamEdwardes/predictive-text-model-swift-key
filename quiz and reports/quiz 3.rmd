@@ -1,0 +1,87 @@
+---
+title: "Quiz 3"
+output: html_notebook
+---
+
+# Question #1
+```{r}
+search_text <- "started telling me about his"
+
+texts(all_corp)[grepl(x = texts(all_corp),
+                      pattern = search_text)]
+```
+
+# Question #2
+```{r}
+search_text <- "started telling me about his"
+
+texts(all_corp)[grepl(x = texts(all_corp),
+                      pattern = search_text)]
+```
+
+# Question #3
+```{r}
+search_text <- "to see arctic monkeys this"
+
+texts(all_corp)[grepl(x = texts(all_corp),
+                      pattern = search_text)]
+
+
+```
+
+# Question #4
+```{r}
+search_text <- "has the same effect as a hug and helps reduce your"
+
+texts(all_corp)[grepl(x = texts(all_corp),
+                      pattern = search_text)]
+```
+
+
+# Question #5
+```{r}
+search_text <- "to see arctic monkeys this"
+
+texts(all_corp)[grepl(x = texts(all_corp),
+                      pattern = search_text)]
+```
+
+# Question #6
+```{r}
+search_text <- "to see arctic monkeys this"
+
+texts(all_corp)[grepl(x = texts(all_corp),
+                      pattern = search_text)]
+```
+
+# Question #7
+```{r}
+search_text <- "to see arctic monkeys this"
+
+texts(all_corp)[grepl(x = texts(all_corp),
+                      pattern = search_text)]
+```
+
+# Question #8
+```{r}
+search_text <- "to see arctic monkeys this"
+
+texts(all_corp)[grepl(x = texts(all_corp),
+                      pattern = search_text)]
+```
+
+# Question #9
+```{r}
+search_text <- "to see arctic monkeys this"
+
+texts(all_corp)[grepl(x = texts(all_corp),
+                      pattern = search_text)]
+```
+
+# Question #10
+```{r}
+search_text <- "to see arctic monkeys this"
+
+texts(all_corp)[grepl(x = texts(all_corp),
+                      pattern = search_text)]
+```
