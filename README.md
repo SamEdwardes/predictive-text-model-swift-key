@@ -4,9 +4,11 @@ Capstone project for the Data Science Specialization through Coursera and John H
 
 ## Deliverables
 
-- [Quizzes](quiz) 
-- [R markdown exploratory analysis](exploration)
-- Shiny App ([ui.R](ui.R) and [server.R](server.R))
+- Quizzes
+    - [Week 1 Quiz](https://github.com/SamEdwardes/predictive-text-model-swift-key/blob/master/quiz%20and%20reports/quiz%201.R)
+- Reports
+    - [Week 2 Report](http://samedwardes.com/predictive-text-model-swift-key/quiz%20and%20reports/Week%202%20-%20Milestone%20Report.nb.html)
+- Shiny App ([ui.R](app/ui.R) and [server.R](app/server.R))
 - Presentation
 
 ## Resources
