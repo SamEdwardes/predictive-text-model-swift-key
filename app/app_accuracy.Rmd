@@ -1,12 +1,37 @@
-# get functions ----
-source("app/prediction_functions.R")
+---
+output: html_document
+---
 
-# load model ----
-if(!exists("train.dfm")){train.dfm <- fread("data/train.dfm.csv")}
-if(exists("test.result.df")){rm(test.result.df)}
-if(!exists("test.result.df")){test.result.df <- fread("data/test.result.df.csv")}
+```{r setup, include=FALSE, warning=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
 
-# Assess accuracy ----
+# Environment
+library(quanteda)
+library(readtext)
+library(tidyverse)
+library(data.table)
+```
+
+## Model Accuracy
+
+To assess the accuracy of the model data, we will test if the model is able to predict the correct word based on the top 3 suggestions.
+
+```{r}
+# read the test data
+test.result.df <- fread("data/test.result.df.csv")
+test.result.df <- test.result.df %>% filter(nchar(test.text)>0)
+```
+
+The data looks like:
+
+```{r}
+dim(test.result.df)
+head(test.result.df)
+tail(test.result.df)
+```
+
+
+```{r}
 
 num_predictions <- 1000
 test.result.df <- test.result.df[1:num_predictions,]
@@ -58,4 +83,6 @@ print(paste0("Accuracy rate: ", num_correct/num_obs))
 print(paste0("Number of no predictions: ", num.no.predict))
 print(paste0("Number of no predictions %: ", num.no.predict/num_obs))
 
-View(test.result.df)
+test.result.df
+```
+

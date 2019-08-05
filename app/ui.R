@@ -34,7 +34,7 @@ navbarPage("Text Prediction Model",
            tabPanel("Model Accuracy",
                     fluidPage(
                         mainPanel(
-                            #includeMarkdown("app_documentation_tab.MD")
+                            includeHTML("app_accuracy.html")
                         )
                     )
                 )

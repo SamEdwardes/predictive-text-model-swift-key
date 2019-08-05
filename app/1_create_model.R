@@ -134,7 +134,8 @@ names(test.result.df) <- c("test.text", "test.correct.prediciton")
 rownames(test.result.df) <- 1:num_tests
 
 # Save model to disk ----
-fwrite(test.result.df, file = "app/data/test.result.df.csv")
-fwrite(train.dfm, file = "app/data/train.dfm.csv")
+fwrite(test.result.df, file = "data/test.result.df.csv")
+fwrite(train.dfm, file = "data/train.dfm.csv")
+save(train.dfm, file = "data/train.dfm.rda")
 
 # END OF SCRIPT ----

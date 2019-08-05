@@ -35,10 +35,11 @@ process_tokens <- function(toks){
 #   potential_matches a dataframe containing the top 10 matches and probabilities.
 # args: 
 #   input_text = takes any string as an input and predicts what word will come next.
+#   train.dfm = a dataframe containing the training data
 
-predict_next_word <- function(input_text){
+predict_next_word <- function(input_text, train.dfm){
     
-    train.dfm <- fread("data/train.dfm.csv")
+    # train.dfm <- fread("data/train.dfm.csv")
     
     # process the input text
     input_toks <- tokens(input_text)
@@ -106,8 +107,8 @@ predict_next_word <- function(input_text){
 # args:
 #   x = takes any string as input
 
-get_word <- function(x){
-    y <- predict_next_word(x)
+get_word <- function(x, train.dfm){
+    y <- predict_next_word(x, train.dfm)
     if (is.null(y$potential_matches)){
         return("New word, no prediction")
     }
@@ -122,8 +123,8 @@ get_word <- function(x){
 #   x = takes any string as input
 
 
-get_word3 <- function(x){
-    y <- predict_next_word(x)
+get_word3 <- function(x, train.dfm){
+    y <- predict_next_word(x, train.dfm)
     if (is.null(y$potential_matches)){
         return("New word, no prediction")
     }
