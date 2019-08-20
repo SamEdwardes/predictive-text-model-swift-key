@@ -16,10 +16,13 @@ function(input, output) {
   prediction.summary <- reactive({predict_next_word(prediction.text(), train.dfm)})
       
   # render results ----
+  # top 3 predictions
   output$prediction1 <- renderText(top3()[1])
   output$prediction2 <- renderText(top3()[2])
   output$prediction3 <- renderText(top3()[3])
-  output$prediction.results.summary <- renderPrint(prediction.summary())
+  
+  # summary of predictions
+  output$prediction.table <- renderTable(as.data.frame(prediction.summary()$potential_matches))
         
   
 }

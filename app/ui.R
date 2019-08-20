@@ -12,7 +12,7 @@ navbarPage("Text Prediction Model",
                     fluidPage(
                         sidebarLayout(
                             sidebarPanel(
-                                textInput("prediction.text", "Type here:", value = "This prediction tool is..."),
+                                textInput("prediction.text", "Type here:", value = "The president of the USA is president"),
                                 p("The text prediction model analyses text to predict what the next word should be. Type your text in the box below, and the algorithm will predict what word it thinks you wish to type next.")
                             ),
                             mainPanel(
@@ -30,7 +30,8 @@ navbarPage("Text Prediction Model",
                                 ),
                                 hr(),
                                 h3("Summary of prediction"),
-                                verbatimTextOutput("prediction.results.summary")
+                                p("The table below shows the top 10 next word predictions. See the documentation tab for additional details on how scoring was performed."),
+                                tableOutput("prediction.table")
                             )
                         )
                     )
@@ -39,13 +40,6 @@ navbarPage("Text Prediction Model",
                     fluidPage(
                         mainPanel(
                             includeMarkdown("app_documentation_tab.MD")
-                        )
-                    )
-                ),
-           tabPanel("Model Accuracy",
-                    fluidPage(
-                        mainPanel(
-                            includeHTML("app_accuracy.html")
                         )
                     )
                 )
