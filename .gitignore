@@ -43,3 +43,5 @@ vignettes/*.pdf
 rsconnect/
 .RDataTmp
 .DS_Store
+.vscode/settings.json
+app/test.py
